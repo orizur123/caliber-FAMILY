@@ -256,8 +256,10 @@
         "title": "טיפ טיפ טף"
       },
       "spotify": {
-        "url": "https://open.spotify.com/search/טיפ טיפ טף משפחת קליבר",
-        "matchType": "search-fallback"
+        "trackId": "2CSAmy13X5piOF5yOp4xbf",
+        "url": "https://open.spotify.com/track/2CSAmy13X5piOF5yOp4xbf",
+        "embedUrl": "https://open.spotify.com/embed/track/2CSAmy13X5piOF5yOp4xbf",
+        "matchType": "exact"
       }
     },
     {
@@ -431,11 +433,10 @@
   "stats": {
     "totalSongs": 17,
     "withYouTube": 17,
-    "spotifyExact": 10,
-    "spotifySearchFallback": 7,
+    "spotifyExact": 11,
+    "spotifySearchFallback": 6,
     "spotifyFallbackTitles": [
       "זה קשה ? לא קשה...",
-      "טיפ טיפ טף",
       "אח יא איראן",
       "מי אני ? מה אני ?",
       "לבנה זוהרים - אוהבים אתכם בארגזים",

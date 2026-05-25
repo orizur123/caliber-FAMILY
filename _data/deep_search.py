@@ -145,7 +145,24 @@ def parse_spotify_nextdata():
     return tracks_by_name
 
 spotify_known = parse_spotify_nextdata()
-print(f"Spotify tracks from NEXT_DATA: {len(spotify_known)}", file=sys.stderr)
+
+# Overrides discovered via web search (Spotify embed only exposes top 10 tracks,
+# and Spotify blocks our region from the anonymous-token API). Add a manual map
+# of track-title → Spotify track ID for tracks beyond the top 10.
+# To extend: in Spotify, open the song → Share → Copy Song Link → paste the
+# ID portion here.
+SPOTIFY_OVERRIDES = {
+    "טיפ טיפ טף": "2CSAmy13X5piOF5yOp4xbf",
+    # TODO: fill these in once user provides URLs (Share → Copy Song Link in Spotify):
+    # "אח יא איראן": "<id>",
+    # "לבנה זוהרים - אוהבים אתכם בארגזים": "<id>",
+    # "מי אני ? מה אני ?": "<id>",
+    # "יאללה תתעורר !!!": "<id>",
+    # "זה קשה ? לא קשה...": "<id>",
+    # "נופר על הכביש": "<id>",
+}
+spotify_known.update(SPOTIFY_OVERRIDES)
+print(f"Spotify tracks from NEXT_DATA + overrides: {len(spotify_known)}", file=sys.stderr)
 for n, tid in spotify_known.items():
     print(f"  spotify  {tid}  {n}", file=sys.stderr)
 
