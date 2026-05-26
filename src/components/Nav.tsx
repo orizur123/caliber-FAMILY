@@ -41,10 +41,10 @@ export function Nav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8 md:py-4">
         <a
           href="#hero"
-          className="font-[var(--font-display-en)] text-xl font-bold uppercase tracking-tight text-[var(--color-accent)] md:text-2xl"
-          aria-label="ראשי"
+          className="font-[var(--font-display-he)] text-xl font-black leading-none tracking-tight text-[var(--color-accent)] md:text-2xl"
+          aria-label="משפחת קליבר — לראש הדף"
         >
-          CALIBER
+          משפחת קליבר
         </a>
         <ul className="flex items-center gap-3 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.18em] md:gap-7 md:text-xs">
           {LINKS.map((l) => (

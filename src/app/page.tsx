@@ -28,8 +28,6 @@ export default function Home() {
   const { artist, songs } = songsData;
   const { heroSongs, orderedForGrid } = curate(songs);
 
-  const topMarquee = Array(6).fill("משפחת קליבר");
-
   // Marquee shows newest songs but skips the de-emphasized ones entirely.
   const bottomMarquee = songs
     .filter((s) => !DEEMPHASIZE_TITLES.includes(s.title))
@@ -43,7 +41,6 @@ export default function Home() {
     <>
       <Nav />
       <main>
-        <Marquee items={topMarquee} accent />
         <section id="hero">
           <Hero heroImage={heroImage} bandName={artist.name} />
         </section>
