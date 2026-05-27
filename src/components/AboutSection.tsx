@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { RevealHeading } from "./RevealHeading";
 
 /**
  * "מי אנחנו" — bio paragraph + slogan quote + band photo.
@@ -26,12 +27,13 @@ export function AboutSection() {
           <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.4em] text-[var(--color-accent)]">
             ABOUT · מי אנחנו
           </p>
-          <h2
+          <RevealHeading
+            as="h2"
             id="about-title"
             className="mt-3 font-[var(--font-display-he)] text-5xl font-black leading-[0.9] md:text-7xl"
           >
             מי אנחנו
-          </h2>
+          </RevealHeading>
 
           <p className="mt-8 font-[var(--font-body)] text-lg leading-relaxed text-[var(--color-muted-fg)] md:text-xl">
             {BIO}

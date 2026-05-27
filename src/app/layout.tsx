@@ -3,6 +3,7 @@ import { Heebo, Suez_One, Space_Grotesk, JetBrains_Mono } from "next/font/google
 import "./globals.css";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Grain } from "@/components/Grain";
+import { ScrollProgress } from "@/components/ScrollProgress";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -54,6 +55,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-[var(--color-bg)] pt-[58px] text-[var(--color-fg)] md:pt-[64px]">
         <SmoothScroll />
+        <ScrollProgress />
         <Grain />
         {children}
       </body>

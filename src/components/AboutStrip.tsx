@@ -1,13 +1,14 @@
+import { CountUp } from "./CountUp";
+
 /**
- * "By the numbers" strip — reads like a record-label one-sheet. Matches the
- * stat trio from the previous site (songs / listeners / collabs) but with
- * the current 17-singles count and our acid-yellow type treatment.
+ * "By the numbers" strip — reads like a record-label one-sheet. Numbers
+ * animate from 0 up when the strip enters the viewport (CountUp).
  */
 export function AboutStrip({ totalSongs }: { totalSongs: number }) {
   const stats = [
-    { value: totalSongs.toString(), label: "שירים" },
-    { value: "5K+", label: "מאזינים" },
-    { value: "10+", label: "שיתופי פעולה" },
+    { node: <CountUp to={totalSongs} />, label: "שירים" },
+    { node: <CountUp to={5} suffix="K+" />, label: "מאזינים" },
+    { node: <CountUp to={10} suffix="+" />, label: "שיתופי פעולה" },
   ];
 
   return (
@@ -19,7 +20,7 @@ export function AboutStrip({ totalSongs }: { totalSongs: number }) {
               className="font-[var(--font-display-he)] text-6xl font-black leading-none text-[var(--color-accent)] md:text-7xl"
               style={{ textShadow: "0 0 30px rgba(223, 225, 4, 0.3)" }}
             >
-              {s.value}
+              {s.node}
             </div>
             <div className="mt-2 font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-[var(--color-muted-fg)] md:text-xs">
               {s.label}

@@ -47,6 +47,10 @@ export function Marquee({
       <div
         className={clsx(
           "flex w-max font-[var(--font-display-en)] font-bold uppercase tracking-[0.08em] text-2xl md:text-3xl",
+          // marquee-pausable: tailwind selector applied via globals.css —
+          // hovering the marquee strip pauses the scrolling animation so
+          // visitors can actually read what's passing by.
+          "marquee-pausable",
           reverse ? "marquee-track-reverse" : "marquee-track",
         )}
       >

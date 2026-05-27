@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
 import { X } from "lucide-react";
 import type { Song } from "@/lib/songs";
 import { SpotifyIcon, AppleMusicIcon, YoutubeIcon } from "./PlatformIcons";
@@ -125,6 +125,11 @@ export function PlatformPicker({
   );
 }
 
+/**
+ * Platform button with a *magnetic* hover effect — as the cursor moves over
+ * the button, the button drifts toward the cursor (capped, spring-smoothed).
+ * Subtle, but instantly registers as a high-craft micro-interaction.
+ */
 function PickerButton({
   href,
   label,
@@ -138,11 +143,37 @@ function PickerButton({
   icon: React.ReactNode;
   accentClass: string;
 }) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  // Spring-smoothed so the drift settles instead of snapping to cursor.
+  const sx = useSpring(x, { stiffness: 220, damping: 18, mass: 0.6 });
+  const sy = useSpring(y, { stiffness: 220, damping: 18, mass: 0.6 });
+
+  const PULL = 0.22; // how strongly the button follows the cursor (0..1)
+  const MAX = 12;    // px clamp so it never drifts ridiculously far
+
+  const onMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = (e.clientX - cx) * PULL;
+    const dy = (e.clientY - cy) * PULL;
+    x.set(Math.max(-MAX, Math.min(MAX, dx)));
+    y.set(Math.max(-MAX, Math.min(MAX, dy)));
+  };
+  const reset = () => { x.set(0); y.set(0); };
+
   return (
-    <a
+    <motion.a
+      ref={ref}
       href={href}
       target="_blank"
       rel="noreferrer noopener"
+      onMouseMove={onMove}
+      onMouseLeave={reset}
+      style={{ x: sx, y: sy }}
       className={`group flex items-center justify-between gap-3 border-2 border-[var(--color-border-strong)] bg-[var(--color-muted)] px-5 py-4 transition-colors duration-150 ${accentClass}`}
     >
       <span className="flex items-center gap-3">
@@ -159,6 +190,6 @@ function PickerButton({
       <span aria-hidden className="font-[var(--font-display-en)] text-xl font-bold transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1">
         ←
       </span>
-    </a>
+    </motion.a>
   );
 }

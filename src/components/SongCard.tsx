@@ -18,10 +18,12 @@ import { SpotifyIcon, AppleMusicIcon, YoutubeIcon } from "./PlatformIcons";
 export function SongCard({
   song,
   size = "md",
+  index = 0,
   onOpen,
 }: {
   song: Song;
   size?: "lg" | "md";
+  index?: number;
   onOpen: (s: Song) => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -30,6 +32,11 @@ export function SongCard({
   // Spring-smoothed for the rotation; raw for translateZ glow
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 220, damping: 18 });
   const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-10, 10]), { stiffness: 220, damping: 18 });
+
+  // Staggered entrance: each card waits a little longer to appear, so as the
+  // grid scrolls into view the cards seem to "build up" instead of all
+  // appearing at once. (index % 4) caps the cascade per row of 4.
+  const entryDelay = (index % 4) * 0.08;
 
   const reset = () => {
     mx.set(0);
@@ -49,6 +56,14 @@ export function SongCard({
       onMouseMove={onMove}
       onMouseLeave={reset}
       onClick={() => onOpen(song)}
+      initial={{ opacity: 0, y: 60, scale: 0.94 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.15, margin: "0px 0px -10% 0px" }}
+      transition={{
+        opacity: { duration: 0.6, delay: entryDelay, ease: "easeOut" },
+        y: { duration: 0.75, delay: entryDelay, ease: [0.16, 1, 0.3, 1] },
+        scale: { duration: 0.75, delay: entryDelay, ease: [0.16, 1, 0.3, 1] },
+      }}
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
       whileTap={{ scale: 0.98 }}
       className={clsx(

@@ -60,6 +60,10 @@ body {
   animation: marquee-rtl 22s linear infinite;
   will-change: transform;
 }
+/* Pause the marquee on hover so viewers can read the passing text. */
+.marquee-pausable:hover {
+  animation-play-state: paused;
+}
 
 /* ─── Reduced motion ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
