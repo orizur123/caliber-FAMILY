@@ -80,8 +80,10 @@ export function SiteLoader({
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-1/2 h-[60vmin] w-[60vmin] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px]"
             style={{
+              // Matches the equalizer's yellow→green sweep so the ambient
+              // glow stays in the same palette as the bars.
               background:
-                "radial-gradient(circle, rgba(255, 43, 110, 0.18) 0%, rgba(255, 106, 0, 0.12) 40%, rgba(223, 225, 4, 0.08) 70%, transparent 100%)",
+                "radial-gradient(circle, rgba(120, 220, 80, 0.16) 0%, rgba(180, 230, 40, 0.12) 40%, rgba(223, 225, 4, 0.08) 70%, transparent 100%)",
             }}
             animate={{
               scale: [1, 1.08, 1],
@@ -127,7 +129,7 @@ export function SiteLoader({
               className="flex flex-col items-center gap-2"
             >
               <div
-                className="bg-gradient-to-r from-[#FF2B6E] via-[#FF6A00] to-[#DFE104] bg-clip-text font-[var(--font-mono)] text-xs tabular-nums uppercase tracking-[0.5em] text-transparent"
+                className="font-[var(--font-mono)] text-xs tabular-nums uppercase tracking-[0.5em] text-[var(--color-accent)]"
                 aria-hidden
               >
                 {percent}%
@@ -213,17 +215,16 @@ function Equalizer({ progress }: { progress: number }) {
       {Array.from({ length: BARS }).map((_, i) => {
         const active = i < progress * BARS;
 
-        // Per-bar hue: shift across the spectrum based on horizontal
-        // position — creates a sweep from yellow → orange → pink across
-        // the equalizer instead of a flat single color. Hip-hop palette:
-        // warm dominant, no greens/blues.
-        //   bar 0  (leftmost) → hue 50°  (acid yellow)
-        //   bar 24 (middle)   → hue 25°  (hot orange)
-        //   bar 47 (rightmost)→ hue 350° (magenta)
-        const hue = 50 - (i / (BARS - 1)) * 60; // 50° → -10° (wraps to 350°)
-        const normalizedHue = ((hue % 360) + 360) % 360;
-        const barColor = `hsl(${normalizedHue}, 95%, 56%)`;
-        const glowColor = `hsla(${normalizedHue}, 95%, 56%, 0.5)`;
+        // Per-bar hue: sweep from acid yellow across to vivid green —
+        // matches the site's accent palette and reads as "music in the
+        // safe/calm range" (the yellow→green meter direction of a real
+        // audio level indicator, where green = good signal).
+        //   bar 0  (leftmost)  → hue 60°  (acid yellow)
+        //   bar 24 (middle)    → hue 90°  (yellow-lime)
+        //   bar 47 (rightmost) → hue 130° (vivid green)
+        const hue = 60 + (i / (BARS - 1)) * 70;
+        const barColor = `hsl(${hue}, 95%, 55%)`;
+        const glowColor = `hsla(${hue}, 95%, 55%, 0.5)`;
 
         return (
           <div
@@ -238,7 +239,7 @@ function Equalizer({ progress }: { progress: number }) {
               // intensifying to white-hot at the top) so taller motion reads
               // as "louder/hotter" like a real audio level meter.
               background: active
-                ? `linear-gradient(to top, ${barColor} 0%, ${barColor} 40%, hsl(${normalizedHue}, 100%, 70%) 100%)`
+                ? `linear-gradient(to top, ${barColor} 0%, ${barColor} 40%, hsl(${hue}, 100%, 72%) 100%)`
                 : "var(--color-border-strong)",
               transform: "scaleY(0.12)",
               boxShadow: active ? `0 0 12px ${glowColor}` : "none",
