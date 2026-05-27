@@ -50,6 +50,9 @@ export function HeroSequence({
     let resizeHandler: (() => void) | null = null;
     let scrollHandler: (() => void) | null = null;
     let rafId = 0;
+    // framesRef is a sparse array — entries fill in as each background load
+    // resolves. We render the nearest-loaded frame to whatever scroll wants,
+    // so the user can start scrolling before all frames are present.
 
     // We intentionally do NOT short-circuit on prefers-reduced-motion here:
     // - Many Windows / Linux server profiles (including this machine and
@@ -59,30 +62,42 @@ export function HeroSequence({
     //   user scrolls); it isn't the kind of autoplay parallax that the
     //   reduced-motion preference is meant to protect against.
 
-    // ────── Step 1: load every frame into memory ──────
+    // ────── Progressive loading ──────
+    // Strategy: load frame 1 with high priority first, render it immediately
+    // (no waiting for the rest), then background-load all other frames at
+    // low priority. As frames arrive they fill into framesRef. The render
+    // path uses the nearest-loaded frame, so the user can start scrolling
+    // within ~500ms of opening the page even on slow connections.
+    const frames: (HTMLImageElement | undefined)[] = new Array(frameUrls.length);
+    framesRef.current = frames as HTMLImageElement[];
     let loaded = 0;
-    const loadPromises = frameUrls.map(
-      (url) =>
-        new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.decoding = "async";
-          img.onload = () => {
-            loaded++;
-            if (!cancelled) setProgress(loaded / frameUrls.length);
-            resolve(img);
-          };
-          img.onerror = (e) => reject(e);
-          img.src = url;
-        }),
-    );
+    const totalToLoad = frameUrls.length;
 
-    Promise.all(loadPromises)
-      .then((imgs) => {
+    const loadOne = (i: number, priority: "high" | "low" | "auto" = "auto") => {
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.decoding = "async";
+        // fetchPriority isn't in the standard typings yet in some setups;
+        // assigning the property works regardless and modern browsers honor it.
+        (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = priority;
+        img.onload = () => {
+          frames[i] = img;
+          loaded++;
+          if (!cancelled) setProgress(loaded / totalToLoad);
+          resolve(img);
+        };
+        img.onerror = reject;
+        img.src = frameUrls[i];
+      });
+    };
+
+    // Kick off frame-1 right away with HIGH priority so it lands first.
+    loadOne(0, "high")
+      .then((firstFrame) => {
         if (cancelled) return;
-        framesRef.current = imgs;
         setReady(true);
 
-        // ────── Step 2: wire up canvas + scroll handler ──────
+        // ────── Wire up canvas + scroll handler the moment frame 1 lands ──────
         const canvas = canvasRef.current;
         const section = sectionRef.current;
         if (!canvas || !section) return;
@@ -127,11 +142,32 @@ export function HeroSequence({
 
         setCanvasSize();
         let currentIndex = 0;
-        drawFrame(imgs[0]);
+        drawFrame(firstFrame);
+
+        // Background-load the rest at low priority. We don't await this —
+        // the page is already interactive. As frames arrive, scroll handler
+        // can pick them up.
+        for (let i = 1; i < totalToLoad; i++) {
+          loadOne(i, "low").catch(() => {});
+        }
+
+        // Nearest-loaded fallback: when the scroll handler wants frame N
+        // but it hasn't arrived yet, find the closest one that has.
+        const nearestLoaded = (target: number): HTMLImageElement | undefined => {
+          if (frames[target]) return frames[target];
+          for (let off = 1; off < totalToLoad; off++) {
+            const lo = target - off;
+            const hi = target + off;
+            if (lo >= 0 && frames[lo]) return frames[lo];
+            if (hi < totalToLoad && frames[hi]) return frames[hi];
+          }
+          return frames[0]; // ultimate fallback
+        };
 
         resizeHandler = () => {
           setCanvasSize();
-          drawFrame(imgs[currentIndex]);
+          const f = nearestLoaded(currentIndex);
+          if (f) drawFrame(f);
         };
         window.addEventListener("resize", resizeHandler);
 
@@ -165,16 +201,16 @@ export function HeroSequence({
         };
         const render = (p: number) => {
           const target = Math.min(
-            imgs.length - 1,
-            Math.floor(p * (imgs.length - 1)),
+            totalToLoad - 1,
+            Math.floor(p * (totalToLoad - 1)),
           );
           if (target !== currentIndex) {
             currentIndex = target;
-            drawFrame(imgs[target]);
+            const f = nearestLoaded(target);
+            if (f) drawFrame(f);
           }
-          // Overlay deepens with scroll, no text element to fade — the source
-          // video has the band name + branding baked in already, so a CSS
-          // overlay would just clash.
+          // Overlay deepens with scroll. No text element to fade — the source
+          // video has the band name + branding baked in already.
           if (overlayRef.current) {
             overlayRef.current.style.opacity = `${0.45 + p * 0.45}`;
           }
@@ -199,7 +235,8 @@ export function HeroSequence({
           target: () => targetProgress,
           displayed: () => displayedProgress,
           frame: () => currentIndex,
-          framesLoaded: imgs.length,
+          framesLoadedSoFar: () => loaded,
+          framesTotal: totalToLoad,
           force: (p: number) => { targetProgress = p; displayedProgress = p; render(p); },
           sectionRect: () => section.getBoundingClientRect(),
         };
@@ -210,7 +247,7 @@ export function HeroSequence({
         window.addEventListener("scroll", scrollHandler, { passive: true });
       })
       .catch((e) => {
-        console.error("[HeroSequence] frame preload failed:", e);
+        console.error("[HeroSequence] frame-1 load failed:", e);
       });
 
     return () => {
@@ -240,22 +277,23 @@ export function HeroSequence({
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/85 opacity-65"
         />
 
-        {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
+        {/*
+          Tiny progress bar shown ONLY while background loading is in
+          progress (frame-1 already painted the canvas, so we don't need
+          a full-screen loading overlay anymore). Pinned bottom-right,
+          quietly fades away when 100% loaded.
+        */}
+        {ready && progress < 1 && (
+          <div className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2 opacity-60">
+            <div className="h-[2px] w-20 overflow-hidden bg-[var(--color-border-strong)]/60">
               <div
-                className="h-1 w-48 overflow-hidden bg-[var(--color-border-strong)]"
-                aria-label={`טוען ${Math.round(progress * 100)}%`}
-              >
-                <div
-                  className="h-full bg-[var(--color-accent)] transition-transform duration-150"
-                  style={{ transform: `scaleX(${progress})`, transformOrigin: "right" }}
-                />
-              </div>
-              <span className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.4em] text-[var(--color-muted-fg)]">
-                טוען · {Math.round(progress * 100)}%
-              </span>
+                className="h-full bg-[var(--color-accent)] transition-transform duration-150"
+                style={{ transform: `scaleX(${progress})`, transformOrigin: "right" }}
+              />
             </div>
+            <span className="font-[var(--font-mono)] text-[9px] tabular-nums uppercase tracking-[0.2em] text-[var(--color-muted-fg)]">
+              {Math.round(progress * 100)}%
+            </span>
           </div>
         )}
 

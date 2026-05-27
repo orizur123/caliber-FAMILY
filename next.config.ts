@@ -24,6 +24,22 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "customer-assets.emergentagent.com", pathname: "/**" },
     ],
   },
+  // Long-cache the hero video frame sequence. Vercel's default for /public
+  // is `must-revalidate` which makes the browser re-check 304 files on
+  // every visit; that's pointless for content-hashed-equivalent immutable
+  // assets like ours. With `immutable` the second visit is instant —
+  // the browser uses its local copy without a network round-trip.
+  headers: async () => [
+    {
+      source: "/hero-seq/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    },
+  ],
 };
 
 export default nextConfig;

@@ -57,7 +57,9 @@ OUT_DIR = ROOT / "public" / "hero-seq"
 FPS = 30             # match source rate → no downsample artifacts, more frames for smoother scrub
 WIDTH = 720
 HEIGHT = 720
-JPG_QUALITY = 8      # ffmpeg -q:v: 2=best, 31=worst. 8 ≈ q72; offsets the extra frame count.
+# WebP @ quality 75 is ~25-35% smaller than JPG at the same visual quality.
+# Universal browser support since Safari 14. Same canvas drawImage API works.
+WEBP_QUALITY = 55    # WebP q55 ≈ JPG q72 visually but ~30% smaller for photographic content
 MAX_FRAMES = 360     # 12 seconds @ 30fps. Source longer than this gets trimmed.
 
 
@@ -97,10 +99,13 @@ def main() -> None:
         ffmpeg, "-y",
         "-i", str(SOURCE),
         "-vf", vf,
-        "-an",                      # strip audio
-        "-frames:v", str(MAX_FRAMES),  # cap
-        "-q:v", str(JPG_QUALITY),   # JPG quality
-        str(OUT_DIR / "frame-%03d.jpg"),
+        "-an",                                # strip audio
+        "-frames:v", str(MAX_FRAMES),         # cap
+        "-c:v", "libwebp",                    # WebP encoder
+        "-quality", str(WEBP_QUALITY),
+        "-preset", "photo",                   # tuned for photographic content
+        "-compression_level", "6",            # 0-6: bigger = slower encode + smaller file
+        str(OUT_DIR / "frame-%03d.webp"),
     ]
     print("Running ffmpeg…")
     print("  " + " ".join(cmd[:1] + ["..."] + cmd[-3:]))
@@ -109,7 +114,7 @@ def main() -> None:
         print(r.stderr, file=sys.stderr)
         sys.exit(r.returncode)
 
-    frames = sorted(OUT_DIR.glob("frame-*.jpg"))
+    frames = sorted(OUT_DIR.glob("frame-*.webp"))
     if not frames:
         print("ERROR: ffmpeg ran but produced no frames", file=sys.stderr)
         sys.exit(3)
@@ -120,7 +125,7 @@ def main() -> None:
         "width": WIDTH,
         "height": HEIGHT,
         "fps": FPS,
-        "filenamePattern": "frame-{n:03d}.jpg",   # client uses n = 1..frameCount
+        "filenamePattern": "frame-{n:03d}.webp",  # client uses n = 1..frameCount
         "totalBytes": total_size,
     }
     (OUT_DIR / "manifest.json").write_text(json.dumps(manifest, indent=2))
